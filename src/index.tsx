@@ -3,6 +3,7 @@ import { handlePopup } from './handle-popup'
 import { settings } from './settings'
 import { createWorker } from 'tesseract.js'
 import { getBlob } from './helpers/get-blob'
+import { checkImage } from './helpers/check-image'
 
 const main = async () => {
   console.log('logseq-ocrtotext-plugin loaded')
@@ -31,6 +32,13 @@ const main = async () => {
     }
 
     const fileName = match[1]
+    if (!checkImage(fileName)) {
+      await logseq.UI.showMsg(
+        `Accepted extensions: bmp, jpg, png, pbm, webp`,
+        'error',
+      )
+      return
+    }
     const blob = await getBlob(fileName)
 
     // Set loading state
