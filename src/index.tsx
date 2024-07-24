@@ -10,13 +10,13 @@ const main = async () => {
   handlePopup()
 
   await logseq.UI.showMsg(
-    `Note: Select your assets directory
-This step is needed to give the plugin permissions to read the file to OCR`,
-    'warning',
+    `logseq-ocrtotext-plugin: You will be required to select your assets directory to give the plugin permissiom to OCR the file`,
+    'error',
   )
 
   // Create worker to be used for the life of the plugin
   const tessarectWorker = await createWorker('eng')
+  const graph = await logseq.App.getCurrentGraph()
 
   logseq.Editor.registerBlockContextMenuItem('OCR Image', async (e) => {
     const block = await logseq.Editor.getBlock(e.uuid)
@@ -35,15 +35,29 @@ This step is needed to give the plugin permissions to read the file to OCR`,
 
     // Set loading state
     const loadingMsg = await logseq.UI.showMsg('Processing image...')
-    const text = await tessarectWorker.recognize(blob)
+    try {
+      const {
+        data: { text },
+      } = await tessarectWorker.recognize(blob)
 
-    // Close loading state
-    if (text) {
       logseq.UI.closeMsg(loadingMsg)
-      console.log(text)
-      // TODO: Convert text to block
-    } else {
-      logseq.UI.showMsg('Error processing image', 'error')
+      if (text) {
+        await logseq.Editor.updateBlock(e.uuid, text)
+        if (logseq.settings!.propertyName !== '') {
+          await logseq.Editor.upsertBlockProperty(
+            e.uuid,
+            logseq.settings!.propertyName,
+            `[${graph?.path}/assets/${fileName}](${graph?.path}/assets/${fileName})`,
+          )
+        }
+      } else {
+        await logseq.UI.showMsg('No text available')
+        throw new Error('No text available')
+      }
+    } catch (error) {
+      console.error(error)
+      logseq.UI.showMsg(`Error processing image`, 'error')
+      throw new Error('Error processing image')
     }
   })
 }
