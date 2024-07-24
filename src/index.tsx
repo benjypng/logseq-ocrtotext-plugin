@@ -39,7 +39,7 @@ Only English is supported.`,
     const fileName = match[2]
     if (!checkImage(fileName)) {
       await logseq.UI.showMsg(
-        `Accepted extensions: bmp, jpg, png, pbm, webp`,
+        `Accepted extensions: bmp, jpg, jpeg, png, pbm, webp`,
         'error',
       )
       return
