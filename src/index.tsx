@@ -1,9 +1,11 @@
 import '@logseq/libs'
-import { handlePopup } from './handle-popup'
-import { settings } from './settings'
+
 import { createWorker } from 'tesseract.js'
-import { getBlob } from './helpers/get-blob'
+
+import { handlePopup } from './handle-popup'
 import { checkImage } from './helpers/check-image'
+import { getBlob } from './helpers/get-blob'
+import { settings } from './settings'
 
 const main = async () => {
   console.log('logseq-ocrtotext-plugin loaded')
@@ -20,6 +22,7 @@ Only English is supported.`,
   // Create worker to be used for the life of the plugin
   const tessarectWorker = await createWorker('eng')
   const graph = await logseq.App.getCurrentGraph()
+  const graphPath = graph?.path
 
   logseq.Editor.registerBlockContextMenuItem('OCR Image', async (e) => {
     const block = await logseq.Editor.getBlock(e.uuid)
@@ -64,7 +67,7 @@ Only English is supported.`,
             await logseq.Editor.upsertBlockProperty(
               e.uuid,
               logseq.settings!.propertyName,
-              `[${graph?.path}/assets/${fileName}](${graph?.path}/assets/${fileName})`,
+              `[${graphPath}/assets/${fileName}](${graphPath}/assets/${fileName})`,
             )
           } else {
             await logseq.Editor.upsertBlockProperty(
