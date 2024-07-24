@@ -1,11 +1,11 @@
 {
-	"name": "<insert-plugin-name>",
-	"author": "",
+	"name": "logseq-ocrtotext-plugin",
+	"author": "benjypng",
 	"description": "",
 	"license": "MIT",
 	"logseq": {
-		"id": "<insert-plugin-name>",
-		"title": "<insert-plugin-name>",
+		"id": "logseq-ocrtotext-plugin",
+		"title": "logseq-ocrtotext-plugin",
 		"icon": "./icon.svg",
 		"main": "dist/index.html"
 	},
@@ -23,7 +23,7 @@
 				"@semantic-release/github",
 				{
 					"assets": [
-						"<insert-plugin-name>.zip"
+						"logseq-ocrtotext-plugin.zip"
 					]
 				}
 			]
@@ -32,7 +32,8 @@
 	"dependencies": {
 		"@logseq/libs": "^0.0.15",
 		"react": "^18.3.1",
-		"react-dom": "^18.3.1"
+		"react-dom": "^18.3.1",
+		"tesseract.js": "^5.1.0"
 	},
 	"devDependencies": {
 		"@eslint/js": "^9.6.0",
