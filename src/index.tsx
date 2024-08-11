@@ -1,11 +1,12 @@
 import '@logseq/libs'
 
-import { createWorker } from 'tesseract.js'
+import { createWorker, OEM, PSM } from 'tesseract.js'
 
 import { handlePopup } from './handle-popup'
 import { checkImage } from './helpers/check-image'
 import { getBlob } from './helpers/get-blob'
 import { settings } from './settings'
+import { handleInsertProperty } from './helpers/handle-property'
 
 const main = async () => {
   console.log('logseq-ocrtotext-plugin loaded')
@@ -20,7 +21,12 @@ Only English is supported.`,
   )
 
   // Create worker to be used for the life of the plugin
-  const tessarectWorker = await createWorker('eng')
+  const tessarectWorker = await createWorker('eng', OEM.LSTM_ONLY)
+  tessarectWorker.setParameters({
+    tessedit_pageseg_mode: PSM.SINGLE_BLOCK,
+    preserve_interword_spaces: '1',
+    user_defined_dpi: '70',
+  })
   const graph = await logseq.App.getCurrentGraph()
   const graphPath = graph?.path
 
@@ -28,15 +34,23 @@ Only English is supported.`,
     const block = await logseq.Editor.getBlock(e.uuid)
     if (!block) return
 
-    const regex = /!\[.*?\]\((.*?\/|.*?\\)?([\w-]+\.[a-zA-Z0-9]+)\)/
+    const regex = /!\[(.*?)\]\((.*?)\)/
     const match = regex.exec(block.content)
-    if (!match || !match[1] || !match[2]) {
-      await logseq.UI.showMsg('Invalid path', 'error')
+
+    if (!match || !match[2]) {
+      console.error('logseq-ocrtotext-plugin', match)
+      await logseq.UI.showMsg('Invalid path. Check logs.', 'error')
       return
     }
 
-    const path = match[1]
-    const fileName = match[2]
+    const path = match[2]
+    const fileName = path.split('/').pop()
+    if (!fileName) {
+      console.error('logseq-ocrtotext-plugin', match)
+      await logseq.UI.showMsg('Invalid path. Check logs.', 'error')
+      return
+    }
+
     if (!checkImage(fileName)) {
       await logseq.UI.showMsg(
         `Accepted extensions: bmp, jpg, jpeg, png, pbm, webp`,
@@ -45,7 +59,6 @@ Only English is supported.`,
       return
     }
 
-    // Set loading state
     const loadingMsg = await logseq.UI.showMsg('Processing image...')
     try {
       let img
@@ -55,32 +68,40 @@ Only English is supported.`,
         img = `${path}${fileName}`
       }
 
-      const {
-        data: { text },
-      } = await tessarectWorker.recognize(img)
+      try {
+        const {
+          data: { text },
+        } = await tessarectWorker.recognize(img)
+
+        if (logseq.settings!.replaceText) {
+          // Replaces image with text
+
+          await logseq.Editor.updateBlock(e.uuid, text)
+
+          await handleInsertProperty(graphPath!, path, fileName, match, e.uuid)
+        } else {
+          // Inserts text as a child block
+
+          const blk = await logseq.Editor.insertBlock(e.uuid, text, {
+            before: false,
+            sibling: false,
+          })
+
+          await handleInsertProperty(
+            graphPath!,
+            path,
+            fileName,
+            match,
+            blk!.uuid,
+          )
+        }
+      } catch (error) {
+        console.error(error)
+        logseq.UI.showMsg(`Error processing image`, 'error')
+        throw new Error('Error processing image')
+      }
 
       logseq.UI.closeMsg(loadingMsg)
-      if (text) {
-        await logseq.Editor.updateBlock(e.uuid, text)
-        if (logseq.settings!.propertyName !== '') {
-          if (match[1].startsWith('../assets')) {
-            await logseq.Editor.upsertBlockProperty(
-              e.uuid,
-              logseq.settings!.propertyName,
-              `[${graphPath}/assets/${fileName}](${graphPath}/assets/${fileName})`,
-            )
-          } else {
-            await logseq.Editor.upsertBlockProperty(
-              e.uuid,
-              logseq.settings!.propertyName,
-              `[${match[1]}${fileName}](${match[1]}${fileName})`,
-            )
-          }
-        }
-      } else {
-        await logseq.UI.showMsg('No text available')
-        throw new Error('No text available')
-      }
     } catch (error) {
       console.error(error)
       logseq.UI.showMsg(`Error processing image`, 'error')
