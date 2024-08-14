@@ -5,20 +5,13 @@ import { createWorker, OEM, PSM } from 'tesseract.js'
 import { handlePopup } from './handle-popup'
 import { checkImage } from './helpers/check-image'
 import { getBlob } from './helpers/get-blob'
-import { settings } from './settings'
 import { handleInsertProperty } from './helpers/handle-property'
+import { settings } from './settings'
 
 const main = async () => {
   console.log('logseq-ocrtotext-plugin loaded')
   // Used to handle any popups
   handlePopup()
-
-  await logseq.UI.showMsg(
-    `logseq-ocrtotext-plugin: 
-You will be required to select your assets directory to give the plugin permissiom to OCR the file.
-Only English is supported.`,
-    'error',
-  )
 
   // Create worker to be used for the life of the plugin
   const tessarectWorker = await createWorker('eng', OEM.LSTM_ONLY)
