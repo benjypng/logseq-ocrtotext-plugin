@@ -1,6 +1,6 @@
 import '@logseq/libs'
 
-import { createWorker } from 'tesseract.js'
+import { createWorker, OEM, PSM } from 'tesseract.js'
 
 import { handlePopup } from './handle-popup'
 import { checkImage } from './helpers/check-image'
@@ -21,6 +21,13 @@ Only English is supported.`,
 
   // Create worker to be used for the life of the plugin
   const tessarectWorker = await createWorker('eng')
+  await tessarectWorker.setParameters({
+    psm: PSM.SPARSE_TEXT,
+    engineMode: OEM.LSTM_ONLY,
+    lang: 'eng',
+    tessedit_char_whitelist:
+      'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-() ',
+  })
   const graph = await logseq.App.getCurrentGraph()
   const graphPath = graph?.path
 
